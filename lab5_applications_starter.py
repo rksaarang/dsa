@@ -2,7 +2,7 @@
 
 Run the tests:  python test_lab5.py      Run the timings:  python lab5_applications_starter.py
 Uses only what we have seen: loops, recursion, insertion / bubble / merge sort, sets as a black box.
-Fill in every TODO. Do not call sorted() or list.sort() in Tasks 1 to 4: use merge_sort / merge_sort_key.
+Do not call sorted() or list.sort() in Tasks 1 to 4: use merge_sort / merge_sort_key.
 """
 import random
 import timeit
@@ -35,6 +35,7 @@ def merge_sort(a):
 # A record is a tuple (city, name, age).
 # ---------------------------------------------------------------------------
 def merge_sort_key(a, key):
+    """Sort by key(x), stably, and return a new list."""
     if len(a) <= 1:
         return list(a)
 
@@ -55,95 +56,137 @@ def merge_sort_key(a, key):
     out.extend(left[i:])
     out.extend(right[j:])
     return out
-    """Task 1a: like merge_sort, but compare key(x) instead of x. Return a NEW list, stable.
-
-    Example: merge_sort_key(["bb", "a", "ccc"], key=len) == ["a", "bb", "ccc"]
-    Hint: copy merge_sort and replace each comparison of two items by a comparison of their keys.
-    Keep the <= so that equal keys stay in their original order.
-    """
-    # TODO
-    raise NotImplementedError
 
 
 def sort_two_passes(records):
-    """Task 1b: sort by city, then by name inside each city, using TWO stable passes of merge_sort_key.
-
-    Think about the ORDER of the passes: which key must be sorted first?
-    """
-    # TODO
-    raise NotImplementedError
+    """Sort by city, then name within each city, using stable passes."""
+    by_name = merge_sort_key(records, key=lambda record: record[1])
+    return merge_sort_key(by_name, key=lambda record: record[0])
 
 
 def sort_one_pass(records):
-    """Task 1c: the same result with ONE pass, using a key that returns a tuple."""
-    # TODO
-    raise NotImplementedError
+    """Sort by city, then name, using one tuple key."""
+    return merge_sort_key(records, key=lambda record: (record[0], record[1]))
 
 
 # ---------------------------------------------------------------------------
 # Task 2: does a list contain a duplicate? Three ways, three costs.
 # ---------------------------------------------------------------------------
 def has_dup_nested(a):
-    """Task 2a: compare every pair with two nested loops. Cost: ?"""
-    # TODO
-    raise NotImplementedError
+    """Check every pair of positions. O(n^2) time."""
+    for i in range(len(a)):
+        for j in range(i + 1, len(a)):
+            if a[i] == a[j]:
+                return True
+    return False
 
 
 def has_dup_sort(a):
-    """Task 2b: sort a COPY with merge_sort, then compare neighbours. Do not modify `a`. Cost: ?"""
-    # TODO
-    raise NotImplementedError
+    """Sort a copy, then compare neighbors. O(n log n) time."""
+    ordered = merge_sort(a)
+    for i in range(1, len(ordered)):
+        if ordered[i] == ordered[i - 1]:
+            return True
+    return False
 
 
 def has_dup_set(a):
-    """Task 2c: one pass, remembering the items already seen in a set. Cost: ?"""
-    # TODO
-    raise NotImplementedError
+    """Track seen items in a set. O(n) average time."""
+    seen = set()
+    for item in a:
+        if item in seen:
+            return True
+        seen.add(item)
+    return False
 
 
 def dup_timings(sizes=(1000, 2000, 4000, 8000)):
-    """Task 2d: print a table of times (ms) for the three versions on lists WITHOUT duplicates (worst case).
-
-    Then write down the doubling ratio of each column.
-    """
+    """Print timings for lists without duplicates and their doubling ratios."""
     print(f"{'n':>7} {'nested':>9} {'sort':>8} {'set':>8}")
+
+    times = []
     for n in sizes:
-        a = random.sample(range(10 * n), n)   # n distinct values
-        t_nested = min(timeit.timeit(lambda: has_dup_nested(a), number=1) for _ in range(2))
-        # TODO: time has_dup_sort and has_dup_set in the same way
-        print(f"{n:>7} {t_nested * 1000:>9.1f}  ...")
+        a = random.sample(range(10 * n), n)
+
+        t_nested = min(
+            timeit.timeit(lambda: has_dup_nested(a), number=1)
+            for _ in range(2)
+        )
+        t_sort = min(
+            timeit.timeit(lambda: has_dup_sort(a), number=1)
+            for _ in range(2)
+        )
+        t_set = min(
+            timeit.timeit(lambda: has_dup_set(a), number=1)
+            for _ in range(2)
+        )
+
+        times.append((t_nested, t_sort, t_set))
+        print(
+            f"{n:>7} {t_nested * 1000:>9.1f} "
+            f"{t_sort * 1000:>8.1f} {t_set * 1000:>8.1f}"
+        )
+
+    print("\nDoubling ratios (current size / previous size):")
+    print(f"{'n':>7} {'nested':>9} {'sort':>8} {'set':>8}")
+    for i in range(1, len(sizes)):
+        ratios = [
+            times[i][j] / times[i - 1][j] if times[i - 1][j] else 0
+            for j in range(3)
+        ]
+        print(
+            f"{sizes[i]:>7} {ratios[0]:>9.2f} "
+            f"{ratios[1]:>8.2f} {ratios[2]:>8.2f}"
+        )
 
 
 # ---------------------------------------------------------------------------
-# Task 3: is there a pair of items (at two different positions) with a given sum?
+# Task 3: is there a pair of items at different positions with a given sum?
 # ---------------------------------------------------------------------------
 def has_pair_brute(a, target):
-    """Task 3a: two nested loops over positions i < j. Cost: ?"""
-    # TODO
-    raise NotImplementedError
+    """Check every pair of positions. O(n^2) time."""
+    for i in range(len(a)):
+        for j in range(i + 1, len(a)):
+            if a[i] + a[j] == target:
+                return True
+    return False
 
 
 def has_pair_sorted(a, target):
-    """Task 3b: sort a COPY with merge_sort, then walk two indices lo (start) and hi (end) towards each other.
+    """Sort a copy, then move two pointers inward. O(n log n) time."""
+    ordered = merge_sort(a)
+    lo = 0
+    hi = len(ordered) - 1
 
-    If a[lo] + a[hi] is too small move lo right, if too large move hi left. Cost: ?
-    """
-    # TODO
-    raise NotImplementedError
+    while lo < hi:
+        total = ordered[lo] + ordered[hi]
+
+        if total == target:
+            return True
+        elif total < target:
+            lo += 1
+        else:
+            hi -= 1
+
+    return False
 
 
 def has_pair_set(a, target):
-    """Task 3c (stretch): one pass with a set of the items already seen. Cost: ?"""
-    # TODO
-    raise NotImplementedError
+    """Check for each item's complement in a set. O(n) average time."""
+    seen = set()
+    for item in a:
+        if target - item in seen:
+            return True
+        seen.add(item)
+    return False
 
 
 # ---------------------------------------------------------------------------
 # Task 4 (stretch): count inversions with divide and conquer.
-# An inversion is a pair of positions i < j with a[i] > a[j].  [3, 1, 2] has 2 inversions.
+# An inversion is a pair of positions i < j with a[i] > a[j].
 # ---------------------------------------------------------------------------
 def insertion_shift_count(a):
-    """Given: run insertion sort on a COPY of a and return the number of shifts it makes."""
+    """Given: run insertion sort on a copy of a and return the number of shifts."""
     a = list(a)
     shifts = 0
     for i in range(1, len(a)):
@@ -158,15 +201,35 @@ def insertion_shift_count(a):
 
 
 def count_inversions(a):
-    """Task 4: return the number of inversions of a in O(n log n). Do not modify `a`.
+    """Count inversions in O(n log n) time without changing a."""
+    def sort_and_count(items):
+        if len(items) <= 1:
+            return list(items), 0
 
-    Idea: split in two halves, count the inversions inside each half recursively, then count the
-    inversions BETWEEN the halves during the merge. When you take an item from the right half, every
-    item still waiting in the left half is larger than it: that is len(left) - i inversions.
-    Hint: write a helper that returns (sorted_list, number_of_inversions).
-    """
-    # TODO
-    raise NotImplementedError
+        mid = len(items) // 2
+        left, left_count = sort_and_count(items[:mid])
+        right, right_count = sort_and_count(items[mid:])
+
+        merged = []
+        i = j = 0
+        split_count = 0
+
+        while i < len(left) and j < len(right):
+            if left[i] <= right[j]:
+                merged.append(left[i])
+                i += 1
+            else:
+                merged.append(right[j])
+                split_count += len(left) - i
+                j += 1
+
+        merged.extend(left[i:])
+        merged.extend(right[j:])
+
+        total_count = left_count + right_count + split_count
+        return merged, total_count
+
+    return sort_and_count(a)[1]
 
 
 if __name__ == "__main__":
